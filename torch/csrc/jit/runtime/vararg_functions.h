@@ -25,13 +25,10 @@ void namedTupleConstruct(
 
 void listConstruct(
     Stack& stack,
-    const at::ListTypePtr& list_type,
+    const at::ListType& list_type,
     size_t num_inputs);
 
-void dictConstruct(
-    Stack& stack,
-    const at::DictTypePtr& type,
-    size_t num_inputs);
+void dictConstruct(Stack& stack, const at::DictType& type, size_t num_inputs);
 
 void createObject(Stack& stack, const at::ClassTypePtr& type);
 

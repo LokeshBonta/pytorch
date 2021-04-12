@@ -2,7 +2,7 @@ import os
 import sys
 import inspect
 import unittest
-from typing import List
+from typing import Dict, List
 
 import torch
 
@@ -63,7 +63,7 @@ class TestBuiltins(JitTestCase):
                 # not allowed, `name` must be static.
                 return hasattr(self.mod, name)
 
-        with self.assertRaisesRegex(RuntimeError, "hasattr"):
+        with self.assertRaisesRegexWithHighlight(RuntimeError, "hasattr", "name"):
             torch.jit.script(Mod())
 
         class Mod(torch.nn.Module):
@@ -74,26 +74,25 @@ class TestBuiltins(JitTestCase):
                 # not allowed, `torch.rand` is not a class type
                 return hasattr(torch.rand(2, 3), name)
 
-        with self.assertRaisesRegex(RuntimeError, "hasattr"):
+        with self.assertRaisesRegexWithHighlight(RuntimeError, "hasattr", "name"):
             torch.jit.script(Mod())
 
     def test_del(self):
-        def fn(x):
-            # type: (List[int]) -> List[int]
+        def fn(x: List[int]) -> List[int]:
             a = x * 2
             del a
             return x
 
         self.checkScript(fn, ([1, 2, 3],))
 
-        with self.assertRaisesRegex(RuntimeError, "undefined value"):
+        with self.assertRaisesRegexWithHighlight(RuntimeError, "undefined value", "a"):
             @torch.jit.script
             def fn(x):
                 a = x ** 2
                 del a
                 return a
 
-        with self.assertRaisesRegex(RuntimeError, "undefined value"):
+        with self.assertRaisesRegexWithHighlight(RuntimeError, "undefined value", "a"):
             @torch.jit.script
             def fn(x):
                 a = x ** 2
@@ -101,7 +100,7 @@ class TestBuiltins(JitTestCase):
                     del a
                 return a
 
-        with self.assertRaisesRegex(RuntimeError, "undefined value"):
+        with self.assertRaisesRegexWithHighlight(RuntimeError, "undefined value", "b"):
             @torch.jit.script
             def fn(x):
                 a = x ** 2
@@ -109,16 +108,14 @@ class TestBuiltins(JitTestCase):
                 return a
 
     def test_del_multiple_operands(self):
-        def fn(x):
-            # type: (List[int]) -> List[int]
+        def fn(x: List[int]) -> List[int]:
             a, b, c = x[0], x[1], x[2]
             del a, b, c
             return x
 
         self.checkScript(fn, ([1, 2, 3],))
 
-        def del_list_multiple_operands(x):
-            # type: (List[int]) -> List[int]
+        def del_list_multiple_operands(x: List[int]) -> List[int]:
             del x[0], x[1]
             return x
 
@@ -126,8 +123,7 @@ class TestBuiltins(JitTestCase):
         jit_out = torch.jit.script(del_list_multiple_operands)([0, 1, 2])
         self.assertEquals(py_out, jit_out)
 
-        def del_dict_multiple_operands(x):
-            # type: (Dict[str, int]) -> Dict[str, int]
+        def del_dict_multiple_operands(x: Dict[str, int]) -> Dict[str, int]:
             del x['hi'], x['there']
             return x
 

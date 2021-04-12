@@ -1990,13 +1990,13 @@ TEST(MemDependency, MemDependencyCheckerLoopBoundsCond) {
     MemDependencyChecker analyzer({a}, {c});
     Store* initStore = Store::make(c, {x}, Load::make(a, {x}, 1), 1);
     ExprHandle conditionalLoad = Load::make(c, {0}, 1);
-    Stmt* stmt =
-        Block::make({For::make(x, 0, 10, initStore),
-                     Cond::make(
-                         CompareSelect::make(
-                             conditionalLoad, 5, CompareSelectOperation::kLT),
-                         Store::make(c, {0}, 5, 1),
-                         nullptr)});
+    Stmt* stmt = Block::make(
+        {For::make(x, 0, 10, initStore),
+         Cond::make(
+             CompareSelect::make(
+                 conditionalLoad, 5, CompareSelectOperation::kLT),
+             Store::make(c, {0}, 5, 1),
+             nullptr)});
 
     stmt->accept(&analyzer);
 
@@ -2177,11 +2177,12 @@ TEST(MemDependency, MemDependencyCheckerCutLoop) {
         Store::make(b, {x}, Add::make(Load::make(b, {x}, 1), 1), 3);
     For* secondLoop = For::make(x, 4, 7, secondStore);
 
-    Stmt* stmt = Block::make({firstLoop,
-                              secondLoop,
-                              Store::make(b, {4}, 100, 1),
-                              Store::make(b, {5}, 101, 1),
-                              Store::make(b, {6}, 102, 1)});
+    Stmt* stmt = Block::make(
+        {firstLoop,
+         secondLoop,
+         Store::make(b, {4}, 100, 1),
+         Store::make(b, {5}, 101, 1),
+         Store::make(b, {6}, 102, 1)});
 
     stmt->accept(&analyzer);
 
@@ -2766,7 +2767,7 @@ TEST(MemDependency, MemDependencyCheckerComputeAPI) {
         return c->call(m, n, k) + 1;
       });
 
-  LoopNest l({d});
+  LoopNest l({d}, {c, d});
 
   MemDependencyChecker analyzer({a_buf.data(), b_buf.data()}, {d->buf()});
 
@@ -2813,7 +2814,7 @@ TEST(MemDependency, MemDependencyCheckerComputeInline) {
         return c->call(m, n, k) + 1;
       });
 
-  LoopNest l({d});
+  LoopNest l({d}, {c, d});
   l.computeInline(c->buf());
 
   MemDependencyChecker analyzer({a_buf.data(), b_buf.data()}, {d->buf()});
@@ -2850,8 +2851,7 @@ TEST(MemDependency, MemDependencyCheckerComputeSplit) {
       {a_buf.data(), b_buf.data()}, {c->buf()});
   l.root_stmt()->accept(&analyzer_before);
 
-  For *o, *i, *t;
-  l.splitWithTail(l.getLoopStmtsFor(c)[0], 2, &o, &i, &t);
+  l.splitWithTail(l.getLoopStmtsFor(c)[0], 2);
 
   MemDependencyChecker analyzer_after({a_buf.data(), b_buf.data()}, {c->buf()});
   Stmt* stmt = IRSimplifier::simplify(l.root_stmt());
@@ -2963,7 +2963,7 @@ TEST(MemDependency, MemDependencyCheckerComputeReduce) {
         return b.load(l, n, m) * a.load(l, n, m);
       });
   Tensor* d = Reduce("sum", {{2, "l1"}}, Sum(), c, {{3, "n1"}, {6, "m1"}});
-  LoopNest l({d});
+  LoopNest l({d}, {c, d});
 
   MemDependencyChecker analyzer({a.data(), b.data()}, {d->buf()});
 
